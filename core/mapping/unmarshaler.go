@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -20,9 +21,10 @@ import (
 )
 
 const (
-	defaultKeyName = "key"
-	delimiter      = '.'
-	ignoreKey      = "-"
+	defaultKeyName   = "key"
+	delimiter        = '.'
+	ignoreKey        = "-"
+	numberTypeString = "number"
 )
 
 var (
@@ -639,25 +641,23 @@ func (u *Unmarshaler) processFieldPrimitiveWithJSONNumber(fieldType reflect.Type
 	target := reflect.New(Deref(fieldType)).Elem()
 
 	switch typeKind {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		iValue, err := v.Int64()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if err := setValueFromString(typeKind, target, v.String()); err != nil {
+			return u.outError(fullName, err)
+		}
+	case reflect.Float32:
+		fValue, err := v.Float64()
 		if err != nil {
 			return u.outError(fullName, err)
 		}
 
-		target.SetInt(iValue)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		iValue, err := v.Int64()
-		if err != nil {
-			return u.outError(fullName, err)
+		if fValue > math.MaxFloat32 {
+			return u.outError(fullName, fmt.Errorf("parsing %q as float32: value out of range", v.String()))
 		}
 
-		if iValue < 0 {
-			return u.outError(fullName, fmt.Errorf("unmarshal %q with bad value %q", fullName, v.String()))
-		}
-
-		target.SetUint(uint64(iValue))
-	case reflect.Float32, reflect.Float64:
+		target.SetFloat(fValue)
+	case reflect.Float64:
 		fValue, err := v.Float64()
 		if err != nil {
 			return u.outError(fullName, err)
@@ -665,7 +665,7 @@ func (u *Unmarshaler) processFieldPrimitiveWithJSONNumber(fieldType reflect.Type
 
 		target.SetFloat(fValue)
 	default:
-		return u.outError(fullName, newTypeMismatchErrorWithHint(fullName, typeKind.String(), value.Type().String()))
+		return u.outError(fullName, newTypeMismatchErrorWithHint(fullName, typeKind.String(), numberTypeString))
 	}
 
 	SetValue(fieldType, value, target)
