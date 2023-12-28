@@ -13,6 +13,7 @@ import (
 	"github.com/zeromicro/go-zero/core/lang"
 	"github.com/zeromicro/go-zero/core/mapping"
 	"github.com/zeromicro/go-zero/core/trace"
+	"github.com/zeromicro/go-zero/core/utils"
 	"github.com/zeromicro/go-zero/rest/httpc/internal"
 	"github.com/zeromicro/go-zero/rest/internal/header"
 	"go.opentelemetry.io/otel"
@@ -101,7 +102,7 @@ func buildRequest(ctx context.Context, method, url string, data any) (*http.Requ
 	if hasFormBody && method == http.MethodPost {
 		DataUrlVal := nurl.Values{}
 		for key, val := range formVars {
-			DataUrlVal.Add(key, val.(string))
+			DataUrlVal.Add(key, utils.String(val))
 		}
 		reader = strings.NewReader(DataUrlVal.Encode())
 	}
