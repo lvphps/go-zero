@@ -1,6 +1,9 @@
 package httpx
 
-import "net/http"
+import (
+	"net/http"
+	"net/url"
+)
 
 const xForwardedFor = "X-Forwarded-For"
 
@@ -26,6 +29,24 @@ func GetFormValues(r *http.Request) (map[string]any, error) {
 		}
 	}
 
+	return params, nil
+}
+
+func GetQueryValues(r *http.Request) (map[string]any, error) {
+	queryValues, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	params := make(map[string]any, len(queryValues))
+	for name := range queryValues {
+		queryValue := queryValues.Get(name)
+		if len(queryValue) > 0 {
+			params[name] = queryValue
+		} else {
+			params[name] = ""
+		}
+	}
 	return params, nil
 }
 

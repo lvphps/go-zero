@@ -112,7 +112,7 @@ func buildRequest(ctx context.Context, method, url string, data any) (*http.Requ
 		return nil, err
 	}
 
-	req.URL.RawQuery = buildFormQuery(u, val[formKey])
+	req.URL.RawQuery = buildFormQuery(u, val[queryKey])
 	fillHeader(req, val[headerKey])
 	if hasJsonBody {
 		req.Header.Set(header.ContentType, header.JsonContentType)

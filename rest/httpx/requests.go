@@ -15,6 +15,7 @@ import (
 
 const (
 	formKey           = "form"
+	queryKey          = "query"
 	pathKey           = "path"
 	maxMemory         = 32 << 20 // 32MB
 	maxBodyLen        = 8 << 20  // 8MB
@@ -23,9 +24,10 @@ const (
 )
 
 var (
-	formUnmarshaler = mapping.NewUnmarshaler(formKey, mapping.WithStringValues(), mapping.WithOpaqueKeys())
-	pathUnmarshaler = mapping.NewUnmarshaler(pathKey, mapping.WithStringValues(), mapping.WithOpaqueKeys())
-	validator       atomic.Value
+	formUnmarshaler  = mapping.NewUnmarshaler(formKey, mapping.WithStringValues(), mapping.WithOpaqueKeys())
+	queryUnmarshaler = mapping.NewUnmarshaler(queryKey, mapping.WithStringValues(), mapping.WithOpaqueKeys())
+	pathUnmarshaler  = mapping.NewUnmarshaler(pathKey, mapping.WithStringValues(), mapping.WithOpaqueKeys())
+	validator        atomic.Value
 )
 
 // Validator defines the interface for validating the request.
@@ -37,6 +39,10 @@ type Validator interface {
 // Parse parses the request.
 func Parse(r *http.Request, v any) error {
 	if err := ParsePath(r, v); err != nil {
+		return err
+	}
+
+	if err := ParseQuery(r, v); err != nil {
 		return err
 	}
 
@@ -64,6 +70,17 @@ func Parse(r *http.Request, v any) error {
 // ParseHeaders parses the headers request.
 func ParseHeaders(r *http.Request, v any) error {
 	return encoding.ParseRequestHeaders(r, v)
+}
+
+// ParseQuery parses the url query request.
+func ParseQuery(r *http.Request, v any) error {
+	params, err := GetQueryValues(r)
+	if err != nil {
+		return err
+	}
+
+	unmarshaler := mapping.WithOpts(queryUnmarshaler, mapping.GetUnmarshalOptions(r)...)
+	return unmarshaler.Unmarshal(params, v)
 }
 
 // ParseForm parses the form request.

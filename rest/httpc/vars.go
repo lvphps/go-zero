@@ -5,6 +5,7 @@ import "errors"
 const (
 	pathKey   = "path"
 	formKey   = "form"
+	queryKey  = "query"
 	headerKey = "header"
 	jsonKey   = "json"
 	slash     = "/"
