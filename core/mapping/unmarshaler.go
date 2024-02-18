@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -280,6 +279,10 @@ func (u *Unmarshaler) fillSliceFromString(fieldType reflect.Type, value reflect.
 
 func (u *Unmarshaler) fillSliceValue(slice reflect.Value, index int,
 	baseKind reflect.Kind, value any, fullName string) error {
+	if value == nil {
+		return errNilSliceElement
+	}
+
 	ithVal := slice.Index(index)
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -652,8 +655,13 @@ func (u *Unmarshaler) processFieldPrimitiveWithJSONNumber(fieldType reflect.Type
 			return u.outError(fullName, err)
 		}
 
-		if fValue > math.MaxFloat32 {
-			return u.outError(fullName, fmt.Errorf("parsing %q as float32: value out of range", v.String()))
+		// if value is a pointer, we need to check overflow with the pointer's value.
+		derefedValue := value
+		for derefedValue.Type().Kind() == reflect.Ptr {
+			derefedValue = derefedValue.Elem()
+		}
+		if derefedValue.CanFloat() && derefedValue.OverflowFloat(fValue) {
+			return fmt.Errorf("parsing %q as float32: value out of range", v.String())
 		}
 
 		target.SetFloat(fValue)
