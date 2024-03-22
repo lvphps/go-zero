@@ -107,6 +107,14 @@ func (h *PeriodLimit) TakeCtx(ctx context.Context, key string) (int, error) {
 	}
 }
 
+func (h *PeriodLimit) CleanCtx(ctx context.Context, key string) (int, error) {
+	resp, err := h.limitStore.DelCtx(ctx, h.keyPrefix+key)
+	if err != nil {
+		return 0, err
+	}
+	return resp, nil
+}
+
 func (h *PeriodLimit) calcExpireSeconds() int {
 	if h.align {
 		now := time.Now()
